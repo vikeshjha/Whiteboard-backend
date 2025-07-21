@@ -30,23 +30,9 @@ const genRoomCode = () => {
   return result;
 };
 
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Collaborative Whiteboard API is running!',
-    status: 'success',
-    version: '1.0.0',
-    endpoints: {
-      auth: {
-        register: 'POST /api/register',
-        login: 'POST /api/login'
-      },
-      rooms: {
-        create: 'POST /api/create-room',
-        verify: 'POST /api/verify-room'
-      }
-    }
-  });
-});
+app.get('/',(req, res) =>{
+  res.send("server is running")
+})
 
 
 // Enhanced Authentication routes
