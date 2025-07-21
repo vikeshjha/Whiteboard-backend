@@ -31,7 +31,7 @@ const genRoomCode = () => {
 };
 
 app.get('/',(req, res) =>{
-  res.send("server is running")
+  res.json("server is running")
 })
 
 
