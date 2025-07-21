@@ -16,16 +16,30 @@ const PORT = process.env.PORT || 3000;
 // Connect to database
 connectDB();
 
-// UPDATED: CORS Middleware with your frontend URL
-app.use(cors({ 
+// FIXED: Enhanced CORS configuration
+app.use(cors({
   origin: [
     'http://localhost:3000',
     'http://localhost:5173', // Vite dev server
-    'https://vikesh-whiteboard.netlify.app' // Your deployed frontend
+    'https://vikesh-whiteboard.netlify.app', // Your deployed frontend
+    'https://collaborative-whiteboard-three-inky.vercel.app' // Your backend URL
   ],
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
+
 app.use(express.json());
+
+// ADDED: Request logging middleware for debugging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+  }
+  next();
+});
 
 // Utility functions
 const genRoomCode = () => {
@@ -38,16 +52,33 @@ const genRoomCode = () => {
 };
 
 app.get('/',(req, res) =>{
-  res.json("server is running")
+  res.json({
+    message: "Collaborative Whiteboard API is running!",
+    status: "success",
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      auth: {
+        register: 'POST /api/register',
+        login: 'POST /api/login'
+      },
+      rooms: {
+        create: 'POST /api/create-room',
+        verify: 'POST /api/verify-room'
+      }
+    }
+  })
 })
 
-// Enhanced Authentication routes
+// Enhanced Authentication routes with better error handling
 app.post('/api/register', async (req, res) => {
-  console.log('Register attempt:', req.body);
+  console.log('=== REGISTER REQUEST ===');
+  console.log('Body received:', req.body);
+  
   const { username, email, password } = req.body;
 
   // Validation
   if (!username || !email || !password) {
+    console.log('Validation failed: Missing fields');
     return res.status(400).json({ 
       error: 'Username, email, and password are required' 
     });
@@ -55,6 +86,7 @@ app.post('/api/register', async (req, res) => {
 
   // Email format validation
   if (!email.match(/^[a-zA-Z0-9._%+-]+@gmail\.com$/)) {
+    console.log('Validation failed: Email format');
     return res.status(400).json({ 
       error: 'Email must be in format: xyz@gmail.com' 
     });
@@ -62,12 +94,15 @@ app.post('/api/register', async (req, res) => {
 
   // Password length validation
   if (password.length < 6) {
+    console.log('Validation failed: Password length');
     return res.status(400).json({ 
       error: 'Password must be at least 6 characters' 
     });
   }
 
   try {
+    console.log('Checking for existing user...');
+    
     // Check if user already exists
     const existingUser = await User.findOne({
       $or: [{ username }, { email }]
@@ -75,11 +110,14 @@ app.post('/api/register', async (req, res) => {
 
     if (existingUser) {
       const field = existingUser.email === email ? 'email' : 'username';
+      console.log(`User exists: ${field}`);
       return res.status(409).json({ 
         error: `User with this ${field} already exists` 
       });
     }
 
+    console.log('Creating new user...');
+    
     // Create new user
     const user = new User({ username, email, password });
     await user.save();
@@ -99,33 +137,50 @@ app.post('/api/register', async (req, res) => {
       return res.status(400).json({ error: errors.join(', ') });
     }
 
-    res.status(500).json({ error: 'Registration failed' });
+    res.status(500).json({ 
+      error: 'Registration failed',
+      details: error.message 
+    });
   }
 });
 
 app.post('/api/login', async (req, res) => {
-  console.log('Login attempt:', req.body);
+  console.log('=== LOGIN REQUEST ===');
+  console.log('Body received:', req.body);
+  
   const { username, password } = req.body;
 
   if (!username || !password) {
+    console.log('Validation failed: Missing credentials');
     return res.status(400).json({ 
       error: 'Username/email and password are required' 
     });
   }
 
   try {
+    console.log('Finding user:', username);
+    
     // Find user by username or email
     const user = await User.findOne({
       $or: [{ username }, { email: username }]
     });
 
-    if (!user || !user.isActive) {
+    if (!user) {
+      console.log('User not found');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    if (!user.isActive) {
+      console.log('User is inactive');
+      return res.status(401).json({ error: 'Account is inactive' });
+    }
+
+    console.log('User found, comparing password...');
+    
     // Compare password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      console.log('Password mismatch');
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -136,7 +191,7 @@ app.post('/api/login', async (req, res) => {
     // Generate JWT token
     const token = generateToken(user._id);
 
-    console.log('Login successful:', username);
+    console.log('Login successful for user:', username);
     res.json({ 
       success: true,
       user: { 
@@ -150,7 +205,10 @@ app.post('/api/login', async (req, res) => {
 
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    res.status(500).json({ 
+      error: 'Login failed',
+      details: error.message 
+    });
   }
 });
 
@@ -274,7 +332,8 @@ const io = new Server(httpServer, {
     origin: [
       'http://localhost:3000',
       'http://localhost:5173',
-      'https://vikesh-whiteboard.netlify.app'
+      'https://vikesh-whiteboard.netlify.app',
+      'https://collaborative-whiteboard-three-inky.vercel.app'
     ],
     methods: ["GET", "POST"],
     credentials: true
