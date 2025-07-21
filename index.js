@@ -16,8 +16,15 @@ const PORT = process.env.PORT || 3000;
 // Connect to database
 connectDB();
 
-// Middleware
-app.use(cors({ origin: '*' }));
+// UPDATED: CORS Middleware with your frontend URL
+app.use(cors({ 
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173', // Vite dev server
+    'https://vikesh-whiteboard.netlify.app' // Your deployed frontend
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // Utility functions
@@ -33,7 +40,6 @@ const genRoomCode = () => {
 app.get('/',(req, res) =>{
   res.json("server is running")
 })
-
 
 // Enhanced Authentication routes
 app.post('/api/register', async (req, res) => {
@@ -261,9 +267,19 @@ app.get('/api/debug/rooms', authenticateToken, async (req, res) => {
   }
 });
 
-// Socket.IO setup
+// UPDATED: Socket.IO setup with proper CORS
 const httpServer = http.createServer(app);
-const io = new Server(httpServer, { cors: { origin: '*' } });
+const io = new Server(httpServer, { 
+  cors: { 
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://vikesh-whiteboard.netlify.app'
+    ],
+    methods: ["GET", "POST"],
+    credentials: true
+  } 
+});
 
 io.on('connection', socket => {
   console.log('Socket connection established:', socket.id);
