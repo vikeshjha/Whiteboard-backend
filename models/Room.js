@@ -22,7 +22,7 @@ const roomSchema = new mongoose.Schema({
     ref: 'User'
   }],
   canvasData: {
-    type: String, 
+    type: String,
     default: ''
   },
   createdAt: {
