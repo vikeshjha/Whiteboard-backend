@@ -15,9 +15,7 @@ const PORT = process.env.PORT || 3000;
 connectDB();
 
 app.use(cors({
-  origin: [
-    'https://whiteboard-frontend-woad.vercel.app/',
-  ],
+  origin: 'https://test-uj6e.onrender.com',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
