@@ -16,10 +16,7 @@ connectDB();
 
 app.use(cors({
   origin: [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://vikesh-whiteboard.netlify.app',
-    'https://collaborative-whiteboard-480h.onrender.com'
+    'https://whiteboard-frontend-woad.vercel.app/',
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
